@@ -1,96 +1,44 @@
-"""
-LotteryLab Database Module
-Creates and manages the SQLite database.
-"""
-
 import sqlite3
 from pathlib import Path
 
-# Database location
-DATABASE_PATH = Path("database") / "lottery.db"
+DATABASE = Path("data/lottery.db")
 
 
-def create_database():
-    """Create the database and the draws table."""
+class LotteryDatabase:
 
-    # Create the database folder if it doesn't exist
-    DATABASE_PATH.parent.mkdir(exist_ok=True)
+    def __init__(self):
+        DATABASE.parent.mkdir(exist_ok=True)
 
-    conn = sqlite3.connect(DATABASE_PATH)
-    cursor = conn.cursor()
+        self.conn = sqlite3.connect(DATABASE)
+        self.cursor = self.conn.cursor()
 
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS draws (
+        self.create_tables()
+
+    def create_tables(self):
+
+        self.cursor.execute("""
+        CREATE TABLE IF NOT EXISTS lotto(
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            game TEXT NOT NULL,
-            draw_number INTEGER,
-            draw_date TEXT NOT NULL,
-            ball1 INTEGER,
-            ball2 INTEGER,
-            ball3 INTEGER,
-            ball4 INTEGER,
-            ball5 INTEGER,
-            bonus_ball INTEGER,
-            total_sum INTEGER,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            draw_date TEXT UNIQUE,
+            n1 INTEGER,
+            n2 INTEGER,
+            n3 INTEGER,
+            n4 INTEGER,
+            n5 INTEGER,
+            n6 INTEGER,
+            bonus INTEGER
         )
-    """)
+        """)
 
-    conn.commit()
-    conn.close()
+        self.conn.commit()
 
-    print("Database created successfully!")
-    print(f"Location: {DATABASE_PATH.resolve()}")
+    def total_draws(self, table):
 
+        self.cursor.execute(f"SELECT COUNT(*) FROM {table}")
 
-if __name__ == "__main__":
-    create_database()
-    """
-LotteryLab Database Module
-"""
+        return self.cursor.fetchone()[0]
 
-import sqlite3
-from pathlib import Path
+    def close(self):
 
-DATABASE_PATH = Path("database") / "lottery.db"
-
-
-def create_database():
-
-    DATABASE_PATH.parent.mkdir(exist_ok=True)
-
-    conn = sqlite3.connect(DATABASE_PATH)
-    cursor = conn.cursor()
-
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS powerball_draws (
-
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-
-            draw_number INTEGER UNIQUE,
-
-            draw_date TEXT,
-
-            ball1 INTEGER,
-            ball2 INTEGER,
-            ball3 INTEGER,
-            ball4 INTEGER,
-            ball5 INTEGER,
-
-            powerball INTEGER,
-
-            total_sum INTEGER,
-
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    """)
-
-    conn.commit()
-    conn.close()
-
-    print("Database ready.")
-
-
-if __name__ == "__main__":
-    create_database()
-    
+        self.conn.close()
+        

@@ -1,4 +1,4 @@
-{from src.database import LotteryDatabase
+from src.database import LotteryDatabase
 
 
 def main():
@@ -17,4 +17,3 @@ def main():
 if __name__ == "__main__":
     main()
     
-}

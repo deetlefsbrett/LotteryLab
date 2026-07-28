@@ -1,15 +1,25 @@
 """
-LotteryLab Statistics
+LotteryLab Statistics Module
+Author: Brett Deetlefs
+Version: 1.0
 """
 
 import sqlite3
 from pathlib import Path
 from collections import Counter
 
+# ----------------------------------------------------
+# Database Location
+# ----------------------------------------------------
+
 DATABASE_PATH = Path("database") / "lottery.db"
 
 
-def number_frequency():
+# ----------------------------------------------------
+# Get Number Frequencies
+# ----------------------------------------------------
+
+def get_number_frequencies():
 
     conn = sqlite3.connect(DATABASE_PATH)
     cursor = conn.cursor()
@@ -19,20 +29,63 @@ def number_frequency():
         FROM powerball_draws
     """)
 
-    counter = Counter()
-
-    for row in cursor.fetchall():
-        counter.update(row)
-
+    rows = cursor.fetchall()
     conn.close()
 
-    print("=" * 50)
-    print(" TOP 10 MOST FREQUENT MAIN NUMBERS")
-    print("=" * 50)
+    counter = Counter()
+
+    for row in rows:
+        counter.update(row)
+
+    return counter, len(rows)
+
+
+# ----------------------------------------------------
+# Display Report
+# ----------------------------------------------------
+
+def number_frequency():
+
+    counter, total_draws = get_number_frequencies()
+
+    print("\n")
+    print("=" * 65)
+    print("             LOTTERYLAB NUMBER ANALYSIS")
+    print("=" * 65)
+
+    print(f"Total Draws Analysed : {total_draws}")
+    print(f"Total Numbers Drawn  : {total_draws * 5}")
+
+    print("\nNUMBER FREQUENCIES")
+    print("-" * 30)
+
+    print(f"{'Number':<10}{'Times Drawn'}")
+
+    for number in range(1, 51):
+        print(f"{number:<10}{counter[number]}")
+
+    print("\n")
+    print("=" * 65)
+    print("TOP 10 HOT NUMBERS")
+    print("=" * 65)
 
     for number, count in counter.most_common(10):
-        print(f"Number {number:>2}: {count} times")
+        print(f"Number {number:>2}   {count} times")
 
+    print("\n")
+    print("=" * 65)
+    print("TOP 10 COLD NUMBERS")
+    print("=" * 65)
+
+    cold = sorted(counter.items(), key=lambda item: item[1])[:10]
+
+    for number, count in cold:
+        print(f"Number {number:>2}   {count} times")
+
+
+# ----------------------------------------------------
+# Main
+# ----------------------------------------------------
 
 if __name__ == "__main__":
     number_frequency()
