@@ -64,24 +64,26 @@ jobs:
           sdkmanager \
             "platform-tools" \
             "platforms;android-35" \
+            "build-tools;34.0.0" \
             "build-tools;35.0.0"
 
-      - name: Find and configure AIDL
+      - name: Configure Android Build Tools
         run: |
-          echo "Searching for AIDL..."
-          AIDL_PATH=$(find "$ANDROID_HOME" -type f -name aidl | head -n 1)
+          echo "Installed Build Tools:"
+          ls -la "$ANDROID_HOME/build-tools"
+
+          echo "Searching for AIDL:"
+          find "$ANDROID_HOME/build-tools" -name aidl -type f -print
+
+          AIDL_PATH=$(find "$ANDROID_HOME/build-tools" -name aidl -type f | head -n 1)
 
           if [ -z "$AIDL_PATH" ]; then
-            echo "ERROR: AIDL was not found."
-            find "$ANDROID_HOME" -maxdepth 4 -type f | head -100
+            echo "ERROR: AIDL was not found in Android Build Tools."
             exit 1
           fi
 
-          echo "Found AIDL at:"
-          echo "$AIDL_PATH"
-
-          AIDL_DIR=$(dirname "$AIDL_PATH")
-          echo "$AIDL_DIR" >> "$GITHUB_PATH"
+          echo "AIDL found at: $AIDL_PATH"
+          echo "$(dirname "$AIDL_PATH")" >> "$GITHUB_PATH"
 
           "$AIDL_PATH" --version
 
