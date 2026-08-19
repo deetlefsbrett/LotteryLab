@@ -14,7 +14,7 @@ jobs:
     steps:
 
       # ---------------------------------------------------------
-      # 1. Checkout
+      # 1. Checkout repository
       # ---------------------------------------------------------
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -37,38 +37,33 @@ jobs:
           java-version: "17"
 
       # ---------------------------------------------------------
-      # 4. Install Android build dependencies
+      # 4. Install only required system build tools
       # ---------------------------------------------------------
       - name: Install system dependencies
         run: |
           set -eux
 
+          echo "===== Updating apt ====="
           sudo apt-get update
 
-          sudo apt-get install -y \
+          echo "===== Installing build tools ====="
+          sudo apt-get install -y --no-install-recommends \
             git \
             zip \
             unzip \
-            openjdk-17-jdk \
-            python3-pip \
-            python3-virtualenv \
             autoconf \
             automake \
             libtool \
             libltdl-dev \
             pkg-config \
-            zlib1g-dev \
-            libncurses5-dev \
-            libncursesw5-dev \
-            libtinfo6 \
             cmake \
             libffi-dev \
-            libssl-dev \
-            autopoint \
-            gettext
+            libssl-dev
+
+          echo "===== System dependencies installed ====="
 
       # ---------------------------------------------------------
-      # 5. Verify environment
+      # 5. Verify build environment
       # ---------------------------------------------------------
       - name: Verify environment
         run: |
@@ -81,10 +76,19 @@ jobs:
           echo "===== Java ====="
           java -version
 
-          echo "===== Build tools ====="
+          echo "===== Git ====="
+          git --version
+
+          echo "===== Autoconf ====="
           autoconf --version | head -1
+
+          echo "===== Automake ====="
           automake --version | head -1
+
+          echo "===== Libtool ====="
           libtool --version | head -1
+
+          echo "===== CMake ====="
           cmake --version | head -1
 
       # ---------------------------------------------------------
@@ -92,44 +96,62 @@ jobs:
       # ---------------------------------------------------------
       - name: Install Buildozer
         run: |
+          set -eux
+
           python -m pip install --upgrade pip setuptools wheel
           python -m pip install buildozer
 
       # ---------------------------------------------------------
-      # 7. Verify Buildozer configuration
+      # 7. Verify Buildozer
       # ---------------------------------------------------------
       - name: Verify Buildozer
         working-directory: mobile
         run: |
           set -eux
 
+          echo "===== Buildozer version ====="
           buildozer --version
 
-          echo "===== BUILDZER SPEC ====="
+          echo "===== buildozer.spec ====="
           cat buildozer.spec
 
-          echo "===== REQUIREMENTS ====="
+          echo "===== Requirements ====="
           grep "^requirements" buildozer.spec
 
-          echo "===== ANDROID API ====="
+          echo "===== Android API ====="
           grep "^android.api" buildozer.spec
 
-          echo "===== ARCHITECTURES ====="
+          echo "===== Android minimum API ====="
+          grep "^android.minapi" buildozer.spec
+
+          echo "===== Android architectures ====="
           grep "^android.archs" buildozer.spec
 
+          echo "===== Python pins ====="
+          if grep -n "python3==" buildozer.spec; then
+            echo "ERROR: python3 version is explicitly pinned"
+            exit 1
+          else
+            echo "OK: python3 is not explicitly pinned"
+          fi
+
       # ---------------------------------------------------------
-      # 8. Clean previous Android build
+      # 8. Clean all previous Android build state
       # ---------------------------------------------------------
       - name: Clean Buildozer
         working-directory: mobile
         run: |
           set -eux
 
+          echo "===== Removing old Buildozer state ====="
+
           rm -rf .buildozer
           rm -rf bin
 
+          echo "===== Buildozer state cleaned ====="
+
       # ---------------------------------------------------------
-      # 9. Build APK
+      # 9. Build Android APK
       # ---------------------------------------------------------
       - name: Build Android APK
         working-directory: mobile
@@ -139,10 +161,15 @@ jobs:
         run: |
           set -eux
 
+          echo "===== Starting Buildozer Android build ====="
+          echo "===== This may take some time on the first build ====="
+
           buildozer -v android debug
 
+          echo "===== Buildozer build completed ====="
+
       # ---------------------------------------------------------
-      # 10. Show APK
+      # 10. Show generated APK
       # ---------------------------------------------------------
       - name: List APK files
         if: always()
