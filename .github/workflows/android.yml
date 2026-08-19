@@ -12,6 +12,7 @@ jobs:
     runs-on: ubuntu-24.04
 
     steps:
+
       # ---------------------------------------------------------
       # 1. Checkout
       # ---------------------------------------------------------
@@ -21,14 +22,11 @@ jobs:
       # ---------------------------------------------------------
       # 2. Python 3.12
       # ---------------------------------------------------------
-      # IMPORTANT:
-      # Do NOT force python3==3.12.9.
-      # python-for-android will build the matching hostpython.
-      # ---------------------------------------------------------
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          cache: "pip"
 
       # ---------------------------------------------------------
       # 3. Java 17
@@ -40,7 +38,7 @@ jobs:
           java-version: "17"
 
       # ---------------------------------------------------------
-      # 4. Install Linux build dependencies
+      # 4. Install system dependencies
       # ---------------------------------------------------------
       - name: Install system dependencies
         run: |
@@ -48,16 +46,15 @@ jobs:
 
           sudo apt-get update
 
-          sudo apt-get install -y \
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
             git \
             zip \
             unzip \
             openjdk-17-jdk \
-            python3-pip \
-            python3-virtualenv \
             autoconf \
             automake \
             libtool \
+            libtool-bin \
             libltdl-dev \
             pkg-config \
             zlib1g-dev \
@@ -71,35 +68,36 @@ jobs:
             gettext
 
       # ---------------------------------------------------------
-      # 5. Verify the build environment
+      # 5. Verify build environment
       # ---------------------------------------------------------
       - name: Verify build environment
         run: |
           set -eux
 
-          echo "Python:"
+          echo "===== Python ====="
           python --version
-
-          echo "Pip:"
           python -m pip --version
 
-          echo "Java:"
+          echo "===== Java ====="
           java -version
 
-          echo "Autoconf:"
+          echo "===== Autoconf ====="
           autoconf --version | head -1
 
-          echo "Automake:"
+          echo "===== Automake ====="
           automake --version | head -1
 
-          echo "Libtool:"
+          echo "===== Libtool ====="
           libtool --version | head -1
 
-          echo "AIDL / Android SDK:"
+          echo "===== Android SDK ====="
+          echo "ANDROID_HOME=$ANDROID_HOME"
+
           if [ -f "$ANDROID_HOME/build-tools/35.0.0/aidl" ]; then
-            "$ANDROID_HOME/build-tools/35.0.0/aidl" --version
+            echo "AIDL found:"
+            ls -lh "$ANDROID_HOME/build-tools/35.0.0/aidl"
           else
-            echo "AIDL will be installed by Buildozer/python-for-android"
+            echo "AIDL 35 not preinstalled."
           fi
 
       # ---------------------------------------------------------
@@ -107,7 +105,11 @@ jobs:
       # ---------------------------------------------------------
       - name: Upgrade Python packaging tools
         run: |
-          python -m pip install --upgrade pip setuptools wheel virtualenv
+          python -m pip install --upgrade \
+            pip \
+            setuptools \
+            wheel \
+            virtualenv
 
       # ---------------------------------------------------------
       # 7. Install Buildozer
@@ -117,11 +119,12 @@ jobs:
           python -m pip install --upgrade buildozer
 
       # ---------------------------------------------------------
-      # 8. Show Buildozer version
+      # 8. Verify Buildozer
       # ---------------------------------------------------------
       - name: Verify Buildozer
         working-directory: mobile
         run: |
+          set -eux
           buildozer --version
 
       # ---------------------------------------------------------
@@ -136,15 +139,13 @@ jobs:
           cat buildozer.spec
           echo "=========================="
 
-          grep -n "^\\[app\\]" buildozer.spec
+          grep -n "^\[app\]" buildozer.spec
           grep -n "^requirements" buildozer.spec
+          grep -n "^android.api" buildozer.spec
           grep -n "^android.archs" buildozer.spec
 
       # ---------------------------------------------------------
-      # 10. Clean old Buildozer state
-      # ---------------------------------------------------------
-      # This is important because previous failed builds used
-      # Python 3.14.2 and Python 3.12.9.
+      # 10. Clean previous Buildozer state
       # ---------------------------------------------------------
       - name: Clean Buildozer environment
         working-directory: mobile
@@ -155,7 +156,7 @@ jobs:
           rm -rf bin
 
       # ---------------------------------------------------------
-      # 11. Build APK
+      # 11. Build Android APK
       # ---------------------------------------------------------
       - name: Build Android APK
         working-directory: mobile
@@ -165,10 +166,10 @@ jobs:
         run: |
           set -eux
 
-          yes | buildozer android debug
+          buildozer -v android debug
 
       # ---------------------------------------------------------
-      # 12. Show generated files
+      # 12. List generated files
       # ---------------------------------------------------------
       - name: List APK files
         if: always()
