@@ -20,13 +20,12 @@ jobs:
         uses: actions/checkout@v4
 
       # ---------------------------------------------------------
-      # 2. Python
+      # 2. Python 3.12
       # ---------------------------------------------------------
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-          cache: pip
 
       # ---------------------------------------------------------
       # 3. Java 17
@@ -38,9 +37,40 @@ jobs:
           java-version: "17"
 
       # ---------------------------------------------------------
-      # 4. Verify runner
+      # 4. Install Android build dependencies
       # ---------------------------------------------------------
-      - name: Verify runner
+      - name: Install system dependencies
+        run: |
+          set -eux
+
+          sudo apt-get update
+
+          sudo apt-get install -y \
+            git \
+            zip \
+            unzip \
+            openjdk-17-jdk \
+            python3-pip \
+            python3-virtualenv \
+            autoconf \
+            automake \
+            libtool \
+            libltdl-dev \
+            pkg-config \
+            zlib1g-dev \
+            libncurses5-dev \
+            libncursesw5-dev \
+            libtinfo6 \
+            cmake \
+            libffi-dev \
+            libssl-dev \
+            autopoint \
+            gettext
+
+      # ---------------------------------------------------------
+      # 5. Verify environment
+      # ---------------------------------------------------------
+      - name: Verify environment
         run: |
           set -eux
 
@@ -51,75 +81,22 @@ jobs:
           echo "===== Java ====="
           java -version
 
-          echo "===== Git ====="
-          git --version
-
-          echo "===== Autoconf ====="
+          echo "===== Build tools ====="
           autoconf --version | head -1
-
-          echo "===== Automake ====="
           automake --version | head -1
-
-          echo "===== Libtool ====="
-          if command -v libtool >/dev/null 2>&1; then
-            libtool --version | head -1
-          else
-            echo "libtool not currently installed"
-          fi
-
-      # ---------------------------------------------------------
-      # 5. Install only missing build tools
-      # ---------------------------------------------------------
-      - name: Install required build tools
-        run: |
-          set -eux
-
-          sudo apt-get update -qq
-
-          sudo apt-get install -y --no-install-recommends \
-            libtool \
-            libtool-bin \
-            libltdl-dev \
-            pkg-config \
-            autoconf \
-            automake \
-            cmake \
-            libffi-dev \
-            libssl-dev
-
-      # ---------------------------------------------------------
-      # 6. Verify build tools
-      # ---------------------------------------------------------
-      - name: Verify build tools
-        run: |
-          set -eux
-
-          echo "===== Autoconf ====="
-          autoconf --version | head -1
-
-          echo "===== Automake ====="
-          automake --version | head -1
-
-          echo "===== Libtool ====="
           libtool --version | head -1
-
-          echo "===== CMake ====="
           cmake --version | head -1
 
       # ---------------------------------------------------------
-      # 7. Upgrade Python tools
+      # 6. Install Buildozer
       # ---------------------------------------------------------
-      - name: Install Python build tools
+      - name: Install Buildozer
         run: |
-          python -m pip install --upgrade \
-            pip \
-            setuptools \
-            wheel \
-            virtualenv \
-            buildozer
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install buildozer
 
       # ---------------------------------------------------------
-      # 8. Check Buildozer
+      # 7. Verify Buildozer configuration
       # ---------------------------------------------------------
       - name: Verify Buildozer
         working-directory: mobile
@@ -128,25 +105,20 @@ jobs:
 
           buildozer --version
 
-      # ---------------------------------------------------------
-      # 9. Check configuration
-      # ---------------------------------------------------------
-      - name: Verify buildozer.spec
-        working-directory: mobile
-        run: |
-          set -eux
-
-          echo "===== buildozer.spec ====="
+          echo "===== BUILDZER SPEC ====="
           cat buildozer.spec
-          echo "=========================="
 
-          grep -n "^\[app\]" buildozer.spec
-          grep -n "^requirements" buildozer.spec
-          grep -n "^android.api" buildozer.spec
-          grep -n "^android.archs" buildozer.spec
+          echo "===== REQUIREMENTS ====="
+          grep "^requirements" buildozer.spec
+
+          echo "===== ANDROID API ====="
+          grep "^android.api" buildozer.spec
+
+          echo "===== ARCHITECTURES ====="
+          grep "^android.archs" buildozer.spec
 
       # ---------------------------------------------------------
-      # 10. Clean old Buildozer state
+      # 8. Clean previous Android build
       # ---------------------------------------------------------
       - name: Clean Buildozer
         working-directory: mobile
@@ -157,7 +129,7 @@ jobs:
           rm -rf bin
 
       # ---------------------------------------------------------
-      # 11. Build APK
+      # 9. Build APK
       # ---------------------------------------------------------
       - name: Build Android APK
         working-directory: mobile
@@ -170,20 +142,20 @@ jobs:
           buildozer -v android debug
 
       # ---------------------------------------------------------
-      # 12. Show APK
+      # 10. Show APK
       # ---------------------------------------------------------
       - name: List APK files
         if: always()
         working-directory: mobile
         run: |
-          echo "===== BIN ====="
+          echo "===== BIN DIRECTORY ====="
           ls -lah bin || true
 
-          echo "===== APK ====="
+          echo "===== APK FILES ====="
           find . -type f -name "*.apk" -print || true
 
       # ---------------------------------------------------------
-      # 13. Upload APK
+      # 11. Upload APK
       # ---------------------------------------------------------
       - name: Upload APK
         if: success()
