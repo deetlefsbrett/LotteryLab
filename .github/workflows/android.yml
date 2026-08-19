@@ -1,11 +1,10 @@
 name: Build LotteryLab Mobile APK
 
 on:
-  workflow_dispatch:
   push:
-    paths:
-      - "mobile/**"
-      - ".github/workflows/android.yml"
+    branches:
+      - main
+  workflow_dispatch:
 
 jobs:
   build-android:
@@ -13,18 +12,42 @@ jobs:
     runs-on: ubuntu-24.04
 
     steps:
-
+      # ---------------------------------------------------------
+      # 1. Checkout
+      # ---------------------------------------------------------
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.12
+      # ---------------------------------------------------------
+      # 2. Python 3.12
+      # ---------------------------------------------------------
+      # IMPORTANT:
+      # Do NOT force python3==3.12.9.
+      # python-for-android will build the matching hostpython.
+      # ---------------------------------------------------------
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
+      # ---------------------------------------------------------
+      # 3. Java 17
+      # ---------------------------------------------------------
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      # ---------------------------------------------------------
+      # 4. Install Linux build dependencies
+      # ---------------------------------------------------------
       - name: Install system dependencies
         run: |
+          set -eux
+
           sudo apt-get update
+
           sudo apt-get install -y \
             git \
             zip \
@@ -34,7 +57,6 @@ jobs:
             python3-virtualenv \
             autoconf \
             automake \
-            autopoint \
             libtool \
             libltdl-dev \
             pkg-config \
@@ -45,56 +67,127 @@ jobs:
             cmake \
             libffi-dev \
             libssl-dev \
-            gettext \
-            build-essential
+            autopoint \
+            gettext
 
+      # ---------------------------------------------------------
+      # 5. Verify the build environment
+      # ---------------------------------------------------------
+      - name: Verify build environment
+        run: |
+          set -eux
+
+          echo "Python:"
+          python --version
+
+          echo "Pip:"
+          python -m pip --version
+
+          echo "Java:"
+          java -version
+
+          echo "Autoconf:"
+          autoconf --version | head -1
+
+          echo "Automake:"
+          automake --version | head -1
+
+          echo "Libtool:"
+          libtool --version | head -1
+
+          echo "AIDL / Android SDK:"
+          if [ -f "$ANDROID_HOME/build-tools/35.0.0/aidl" ]; then
+            "$ANDROID_HOME/build-tools/35.0.0/aidl" --version
+          else
+            echo "AIDL will be installed by Buildozer/python-for-android"
+          fi
+
+      # ---------------------------------------------------------
+      # 6. Upgrade Python packaging tools
+      # ---------------------------------------------------------
+      - name: Upgrade Python packaging tools
+        run: |
+          python -m pip install --upgrade pip setuptools wheel virtualenv
+
+      # ---------------------------------------------------------
+      # 7. Install Buildozer
+      # ---------------------------------------------------------
       - name: Install Buildozer
         run: |
-          python -m pip install --upgrade pip
-          python -m pip install buildozer
-          python -m pip install setuptools
-          python -m pip install "cython==0.29.34"
+          python -m pip install --upgrade buildozer
 
-      - name: Clean previous Android build
+      # ---------------------------------------------------------
+      # 8. Show Buildozer version
+      # ---------------------------------------------------------
+      - name: Verify Buildozer
         working-directory: mobile
         run: |
+          buildozer --version
+
+      # ---------------------------------------------------------
+      # 9. Verify buildozer.spec
+      # ---------------------------------------------------------
+      - name: Verify buildozer.spec
+        working-directory: mobile
+        run: |
+          set -eux
+
+          echo "===== buildozer.spec ====="
+          cat buildozer.spec
+          echo "=========================="
+
+          grep -n "^\\[app\\]" buildozer.spec
+          grep -n "^requirements" buildozer.spec
+          grep -n "^android.archs" buildozer.spec
+
+      # ---------------------------------------------------------
+      # 10. Clean old Buildozer state
+      # ---------------------------------------------------------
+      # This is important because previous failed builds used
+      # Python 3.14.2 and Python 3.12.9.
+      # ---------------------------------------------------------
+      - name: Clean Buildozer environment
+        working-directory: mobile
+        run: |
+          set -eux
+
           rm -rf .buildozer
           rm -rf bin
 
-      - name: Verify configuration
+      # ---------------------------------------------------------
+      # 11. Build APK
+      # ---------------------------------------------------------
+      - name: Build Android APK
         working-directory: mobile
+        env:
+          ACCEPT_EULA: "Y"
+          PYTHONFORANDROID_PREREQUISITES_INSTALL_INTERACTIVE: "0"
         run: |
-          echo "================================"
-          echo "PYTHON VERSION"
-          echo "================================"
-          python --version
+          set -eux
 
-          echo "================================"
-          echo "BUILDOZER VERSION"
-          echo "================================"
-          buildozer --version
-
-          echo "================================"
-          echo "BUILD CONFIGURATION"
-          echo "================================"
-          cat buildozer.spec
-
-      - name: Build APK
-        working-directory: mobile
-        run: |
           yes | buildozer android debug
 
-      - name: Show APK
+      # ---------------------------------------------------------
+      # 12. Show generated files
+      # ---------------------------------------------------------
+      - name: List APK files
+        if: always()
         working-directory: mobile
         run: |
-          echo "================================"
-          echo "APK FILES"
-          echo "================================"
-          find bin -type f -name "*.apk" -print
+          echo "===== bin directory ====="
+          ls -lah bin || true
 
+          echo "===== APK files ====="
+          find . -type f -name "*.apk" -print || true
+
+      # ---------------------------------------------------------
+      # 13. Upload APK
+      # ---------------------------------------------------------
       - name: Upload APK
+        if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: LotteryLab-Mobile-APK
+          name: LotteryLab-Android-APK
           path: mobile/bin/*.apk
+          if-no-files-found: error
           
