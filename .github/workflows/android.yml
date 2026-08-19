@@ -54,10 +54,18 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install buildozer cython
 
-      - name: Clean previous Buildozer files
+      - name: Clean Buildozer cache
         run: |
           rm -rf ~/.buildozer
           rm -rf mobile/.buildozer
+
+      - name: Verify Buildozer configuration
+        working-directory: mobile
+        run: |
+          echo "===== buildozer.spec ====="
+          cat buildozer.spec
+          echo "===== Kivy references ====="
+          grep -Rni "kivy" . --exclude-dir=.buildozer || true
 
       - name: Build APK
         working-directory: mobile
