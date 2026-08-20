@@ -1,4 +1,3 @@
-@'
 [app]
 
 # ---------------------------------------------------------
@@ -13,15 +12,12 @@ source.dir = .
 source.include_exts = py,png,jpg,jpeg,kv,json,atlas
 
 version = 1.0
-
 orientation = portrait
 
 # ---------------------------------------------------------
 # Python / Kivy
 # ---------------------------------------------------------
 
-# Python 3.13 is used by the GitHub Actions runner.
-# Kivy 2.3.1 supports Python 3.13.
 requirements = python3,kivy==2.3.1,requests
 
 # ---------------------------------------------------------
@@ -31,7 +27,6 @@ requirements = python3,kivy==2.3.1,requests
 android.api = 36
 android.minapi = 24
 android.archs = arm64-v8a
-
 android.accept_sdk_license = True
 android.debug_artifact = apk
 android.permissions = INTERNET
@@ -50,4 +45,3 @@ p4a.branch = master
 fullscreen = 0
 log_level = 2
 warn_on_root = 1
-'@ | Set-Content mobile\buildozer.spec
