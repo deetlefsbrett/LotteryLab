@@ -1,167 +1,119 @@
-"""
-LotteryLab Importer
-Imports PowerBall draws from Excel into SQLite.
-"""
-
-import sqlite3
 from pathlib import Path
+from openpyxl import load_workbook
+print("Running importer from:", __file__)
+print("Importer loaded")
 
-import pandas as pd
+class ExcelImporter:
 
-DATABASE_PATH = Path("database") / "lottery.db"
-EXCEL_FILE = Path("data") / "PB_2025.xlsx"
+    def __init__(self, filename):
 
+        self.filename = Path(filename)
 
-def import_powerball():
+    # =====================================================
+    # PREVIEW EXCEL
+    # =====================================================
 
-    if not EXCEL_FILE.exists():
-        print(f"Excel file not found: {EXCEL_FILE}")
-        return
+    def preview(self):
 
-    # Read the Excel file
-    df = pd.read_excel(EXCEL_FILE, skiprows=2)
+        if not self.filename.exists():
+            print(f"\nExcel file not found: {self.filename}")
+            return
 
-    print(f"Rows found: {len(df)}")
+        workbook = load_workbook(
+            self.filename,
+            data_only=True
+        )
 
-    conn = sqlite3.connect(DATABASE_PATH)
-    cursor = conn.cursor()
+        sheet = workbook.active
 
-    imported = 0
-    skipped = 0
+        print("\n" + "=" * 60)
+        print("EXCEL PREVIEW")
+        print("=" * 60)
 
-    for _, row in df.iterrows():
+        count = 0
 
-        try:
+        for row in sheet.iter_rows(min_row=4, values_only=True):
 
-            cursor.execute("""
-                INSERT OR IGNORE INTO powerball_draws
-                (
-                    draw_number,
-                    draw_date,
-                    ball1,
-                    ball2,
-                    ball3,
-                    ball4,
-                    ball5,
-                    powerball,
-                    total_sum
+            if row[0] is None:
+                continue
+
+            print(row)
+
+            count += 1
+
+            if count == 5:
+                break
+
+    # =====================================================
+    # IMPORT DATA
+    # =====================================================
+
+    def import_to_database(self, db):
+        print("Filename =", self.filename)
+        print("Exists =", self.filename.exists())
+
+        if not self.filename.exists():
+            print(f"\nExcel file not found: {self.filename}")
+            return
+
+        workbook = load_workbook(
+            self.filename,
+            data_only=True
+        )
+
+        sheet = workbook.active
+
+        imported = 0
+        skipped = 0
+
+        for row in sheet.iter_rows(min_row=4, values_only=True):
+
+            try:
+
+                if row[0] is None:
+                    continue
+
+                draw_number = int(row[0])
+
+                draw_date = row[1].strftime("%Y-%m-%d")
+
+                numbers = [
+                    int(row[2]),
+                    int(row[3]),
+                    int(row[4]),
+                    int(row[5]),
+                    int(row[6])
+                ]
+
+                powerball = int(row[7])
+
+                before = db.get_draw_count()
+
+                db.add_draw(
+                    game="POWERBALL",
+                    draw_number=draw_number,
+                    draw_date=draw_date,
+                    numbers=numbers,
+                    special=powerball
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                int(row.iloc[0]),      # Draw Number
-                str(row.iloc[1]),      # Date
-                int(row.iloc[2]),
-                int(row.iloc[3]),
-                int(row.iloc[4]),
-                int(row.iloc[5]),
-                int(row.iloc[6]),
-                int(row.iloc[7]),
-                int(row.iloc[8])
-            ))
 
-            if cursor.rowcount == 1:
-                imported += 1
-            else:
+                after = db.get_draw_count()
+
+                if after > before:
+                    imported += 1
+                else:
+                    skipped += 1
+
+            except Exception as e:
+
                 skipped += 1
+                print(f"Skipped draw {row[0]} : {e}")
 
-        except Exception as e:
-            print(f"Skipped row بسبب error: {e}")
+        print("\n" + "=" * 60)
+        print("IMPORT COMPLETE")
+        print("=" * 60)
+        print(f"Imported : {imported}")
+        print(f"Skipped  : {skipped}")
+        print(f"Database : {db.get_draw_count()} total draws")
+        print("=" * 60)
 
-    conn.commit()
-    conn.close()
-
-    print()
-    print("==========================")
-    print(" Import Complete")
-    print("==========================")
-    print(f"Imported : {imported}")
-    print(f"Skipped  : {skipped}")
-
-
-if __name__ == "__main__":
-    import_powerball()
-    """
-LotteryLab Importer
-Imports PowerBall draws from Excel into SQLite.
-"""
-
-import sqlite3
-from pathlib import Path
-
-import pandas as pd
-
-DATABASE_PATH = Path("database") / "lottery.db"
-EXCEL_FILE = Path("data") / "PB_2025.xlsx"
-
-
-def import_powerball():
-
-    if not EXCEL_FILE.exists():
-        print(f"Excel file not found: {EXCEL_FILE}")
-        return
-
-    # Read the Excel file
-    df = pd.read_excel(EXCEL_FILE, skiprows=2)
-
-    print(f"Rows found: {len(df)}")
-
-    conn = sqlite3.connect(DATABASE_PATH)
-    cursor = conn.cursor()
-
-    imported = 0
-    skipped = 0
-
-    for _, row in df.iterrows():
-
-        try:
-
-            cursor.execute("""
-                INSERT OR IGNORE INTO powerball_draws
-                (
-                    draw_number,
-                    draw_date,
-                    ball1,
-                    ball2,
-                    ball3,
-                    ball4,
-                    ball5,
-                    powerball,
-                    total_sum
-                )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                int(row.iloc[0]),      # Draw Number
-                str(row.iloc[1]),      # Date
-                int(row.iloc[2]),
-                int(row.iloc[3]),
-                int(row.iloc[4]),
-                int(row.iloc[5]),
-                int(row.iloc[6]),
-                int(row.iloc[7]),
-                int(row.iloc[8])
-            ))
-
-            if cursor.rowcount == 1:
-                imported += 1
-            else:
-                skipped += 1
-
-        except Exception as e:
-            print(f"Skipped row duerror: {e}")
-
-    conn.commit()
-    conn.close()
-
-    print()
-    print("==========================")
-    print(" Import Complete")
-    print("==========================")
-    print(f"Imported : {imported}")
-    print(f"Skipped  : {skipped}")
-
-
-if __name__ == "__main__":
-    import_powerball()
-    

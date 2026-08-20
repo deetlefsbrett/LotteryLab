@@ -1,3 +1,4 @@
+@'
 [app]
 
 # ---------------------------------------------------------
@@ -19,7 +20,8 @@ orientation = portrait
 # Python / Kivy
 # ---------------------------------------------------------
 
-# Keep Python 3.12.13 consistent with the GitHub runner.
+# Python 3.13 is used by the GitHub Actions runner.
+# Kivy 2.3.1 supports Python 3.13.
 requirements = python3,kivy==2.3.1,requests
 
 # ---------------------------------------------------------
@@ -39,7 +41,7 @@ android.permissions = INTERNET
 # ---------------------------------------------------------
 
 p4a.bootstrap = sdl2
-p4a.branch = develop
+p4a.branch = master
 
 # ---------------------------------------------------------
 # Build settings
@@ -48,3 +50,4 @@ p4a.branch = develop
 fullscreen = 0
 log_level = 2
 warn_on_root = 1
+'@ | Set-Content mobile\buildozer.spec

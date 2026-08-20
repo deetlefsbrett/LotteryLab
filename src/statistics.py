@@ -1,92 +1,131 @@
-"""
-LotteryLab Statistics Module
-Author: Brett Deetlefs
-Version: 1.0
-"""
-
-import sqlite3
-from pathlib import Path
-from collections import Counter
-
-# ----------------------------------------------------
-# Database Location
-# ----------------------------------------------------
-
-DATABASE_PATH = Path("database") / "lottery.db"
+from src.analyzer import Analyzer
 
 
-# ----------------------------------------------------
-# Get Number Frequencies
-# ----------------------------------------------------
+class Statistics:
 
-def get_number_frequencies():
+    def __init__(self, db):
 
-    conn = sqlite3.connect(DATABASE_PATH)
-    cursor = conn.cursor()
+        self.db = db
+        self.analyzer = Analyzer(db)
 
-    cursor.execute("""
-        SELECT ball1, ball2, ball3, ball4, ball5
-        FROM powerball_draws
-    """)
+    # =====================================================
+    # REFRESH
+    # =====================================================
 
-    rows = cursor.fetchall()
-    conn.close()
+    def refresh(self):
 
-    counter = Counter()
+        self.analyzer.refresh()
 
-    for row in rows:
-        counter.update(row)
+    # =====================================================
+    # DATABASE SUMMARY
+    # =====================================================
 
-    return counter, len(rows)
+    def database_summary(self):
 
+        print("\n" + "=" * 60)
+        print("POWERBALL DATABASE SUMMARY")
+        print("=" * 60)
 
-# ----------------------------------------------------
-# Display Report
-# ----------------------------------------------------
+        print(f"Total Draws     : {self.analyzer.total_draws()}")
+        print(f"Numbers Stored  : {self.analyzer.total_numbers()}")
 
-def number_frequency():
+        print("=" * 60)
 
-    counter, total_draws = get_number_frequencies()
+    # =====================================================
+    # HOT NUMBERS
+    # =====================================================
 
-    print("\n")
-    print("=" * 65)
-    print("             LOTTERYLAB NUMBER ANALYSIS")
-    print("=" * 65)
+    def hot_numbers(self):
 
-    print(f"Total Draws Analysed : {total_draws}")
-    print(f"Total Numbers Drawn  : {total_draws * 5}")
+        print("\n" + "=" * 60)
+        print("TOP 10 HOT NUMBERS")
+        print("=" * 60)
 
-    print("\nNUMBER FREQUENCIES")
-    print("-" * 30)
+        for number, count in self.analyzer.hot_numbers():
 
-    print(f"{'Number':<10}{'Times Drawn'}")
+            print(f"{number:>2}   {count:>3} times")
 
-    for number in range(1, 51):
-        print(f"{number:<10}{counter[number]}")
+    # =====================================================
+    # COLD NUMBERS
+    # =====================================================
 
-    print("\n")
-    print("=" * 65)
-    print("TOP 10 HOT NUMBERS")
-    print("=" * 65)
+    def cold_numbers(self):
 
-    for number, count in counter.most_common(10):
-        print(f"Number {number:>2}   {count} times")
+        print("\n" + "=" * 60)
+        print("TOP 10 COLD NUMBERS")
+        print("=" * 60)
 
-    print("\n")
-    print("=" * 65)
-    print("TOP 10 COLD NUMBERS")
-    print("=" * 65)
+        for number, count in self.analyzer.cold_numbers():
 
-    cold = sorted(counter.items(), key=lambda item: item[1])[:10]
+            print(f"{number:>2}   {count:>3} times")
 
-    for number, count in cold:
-        print(f"Number {number:>2}   {count} times")
+    # =====================================================
+    # ODD / EVEN
+    # =====================================================
 
+    def odd_even(self):
 
-# ----------------------------------------------------
-# Main
-# ----------------------------------------------------
+        odd, even = self.analyzer.odd_even()
 
-if __name__ == "__main__":
-    number_frequency()
-    
+        print("\n" + "=" * 60)
+        print("ODD / EVEN ANALYSIS")
+        print("=" * 60)
+
+        print(f"Odd Numbers  : {odd}")
+        print(f"Even Numbers : {even}")
+
+    # =====================================================
+    # HIGH / LOW
+    # =====================================================
+
+    def high_low(self):
+
+        low, high = self.analyzer.high_low()
+
+        print("\n" + "=" * 60)
+        print("HIGH / LOW ANALYSIS")
+        print("=" * 60)
+
+        print(f"Low Numbers  : {low}")
+        print(f"High Numbers : {high}")
+
+    # =====================================================
+    # OVERDUE
+    # =====================================================
+
+    def overdue_numbers(self):
+
+        print("\n" + "=" * 60)
+        print("TOP 10 OVERDUE NUMBERS")
+        print("=" * 60)
+
+        print(f"{'Number':<10}{'Draws Ago'}")
+        print("-" * 25)
+
+        for number, draws in self.analyzer.overdue_numbers()[:10]:
+
+            print(f"{number:<10}{draws}")
+
+    # =====================================================
+    # PAIR ANALYSIS
+    # =====================================================
+
+    def pair_analysis(self):
+
+        pairs = self.analyzer.pair_analysis()
+
+        print("\n" + "=" * 60)
+        print("TOP 20 NUMBER PAIRS")
+        print("=" * 60)
+
+        if not pairs:
+            print("No pair data available.")
+            return
+
+        print(f"{'Pair':<15}{'Times'}")
+        print("-" * 25)
+
+        for pair, count in pairs:
+
+            print(f"{pair[0]:>2}-{pair[1]:<2}         {count}")
+
