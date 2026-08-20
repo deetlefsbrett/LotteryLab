@@ -28,7 +28,7 @@ requirements = python3==3.12.13,hostpython3==3.12.13,kivy==2.3.1,requests
 
 android.api = 35
 android.minapi = 24
-android.archs = arm64-v8a,armeabi-v7a
+android.archs = arm64-v8a
 
 android.accept_sdk_license = True
 android.debug_artifact = apk
