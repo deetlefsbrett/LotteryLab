@@ -16,10 +16,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.12
+      - name: Set up Python 3.14
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: "3.14"
 
       - name: Set up Java 17
         uses: actions/setup-java@v5
@@ -30,13 +30,16 @@ jobs:
       - name: Install system dependencies
         run: |
           set -eux
-          sudo apt-get update -qq
+
+          sudo apt-get update
+
           sudo apt-get install -y --no-install-recommends \
             git \
             zip \
             unzip \
             autoconf \
             automake \
+            autopoint \
             libtool \
             libtool-bin \
             libltdl-dev \
@@ -46,62 +49,79 @@ jobs:
             libssl-dev \
             zlib1g-dev \
             libncurses5-dev \
-            libncursesw5-dev
+            libncursesw5-dev \
+            libtinfo6 \
+            ccache \
+            gettext
 
-      - name: Verify build environment
+      - name: Verify Python 3.14
         run: |
           set -eux
+
           echo "========================================"
           echo "Python"
           echo "========================================"
+
           python --version
-          python -m pip --version
+          python -c "import sys; print(sys.executable)"
+          python -c "import sys; print(sys.version)"
 
-          echo "========================================"
-          echo "Java"
-          echo "========================================"
-          java -version
+          case "$(python -c 'import sys; print(sys.version_info[:2])')" in
+            "(3, 14)")
+              echo "Python 3.14 confirmed."
+              ;;
+            *)
+              echo "ERROR: Python 3.14 was not selected."
+              exit 1
+              ;;
+          esac
 
-          echo "========================================"
-          echo "Build tools"
-          echo "========================================"
-          git --version
-          autoconf --version | head -1
-          automake --version | head -1
-          libtool --version | head -1
-          cmake --version | head -1
-
-      - name: Install Python build tools
+      - name: Install Rust
         run: |
           set -eux
-          python -m pip install --upgrade \
-            pip \
-            setuptools \
-            wheel \
-            virtualenv
-          python -m pip install buildozer
+
+          curl https://sh.rustup.rs -sSf | sh -s -- -y
+
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+
+      - name: Install Buildozer
+        run: |
+          set -eux
+
+          python -m pip install --upgrade pip setuptools wheel
+
+          python -m pip install \
+            git+https://github.com/kivy/buildozer.git
+
+          python -m pip install \
+            legacy-cgi
 
       - name: Verify Buildozer
         working-directory: mobile
         run: |
           set -eux
+
           echo "========================================"
-          echo "Buildozer version"
+          echo "Buildozer"
           echo "========================================"
+
           buildozer --version
 
       - name: Verify buildozer.spec
         working-directory: mobile
         run: |
           set -eux
+
           echo "========================================"
           echo "buildozer.spec"
           echo "========================================"
+
           cat buildozer.spec
 
           echo "========================================"
           echo "Important settings"
           echo "========================================"
+
           grep -n "^requirements" buildozer.spec || true
           grep -n "^android.api" buildozer.spec || true
           grep -n "^android.minapi" buildozer.spec || true
@@ -113,8 +133,10 @@ jobs:
         working-directory: mobile
         run: |
           set -eux
+
           rm -rf .buildozer
           rm -rf bin
+
           echo "Clean build directory prepared."
 
       - name: Build Android APK
@@ -124,11 +146,14 @@ jobs:
           PYTHONFORANDROID_PREREQUISITES_INSTALL_INTERACTIVE: "0"
         run: |
           set -eux
+
           echo "========================================"
-          echo "Starting LotteryLab Android build"
+          echo "LotteryLab Android Build"
           echo "========================================"
+
           python --version
-          buildozer -v android debug
+
+          buildozer -v --stacktrace android debug
 
       - name: List APK files
         if: always()
@@ -137,11 +162,13 @@ jobs:
           echo "========================================"
           echo "BIN DIRECTORY"
           echo "========================================"
+
           ls -lah bin || true
 
           echo "========================================"
           echo "APK FILES"
           echo "========================================"
+
           find . -type f -name "*.apk" -print || true
 
       - name: Upload APK
