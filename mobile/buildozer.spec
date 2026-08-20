@@ -18,7 +18,7 @@ orientation = portrait
 # Python / Kivy
 # ---------------------------------------------------------
 
-requirements = python3,kivy==2.3.1,requests
+requirements = python3,kivy==2.3.1,requests==2.31.0
 
 # ---------------------------------------------------------
 # Android
