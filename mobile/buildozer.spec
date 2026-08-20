@@ -20,7 +20,7 @@ orientation = portrait
 # ---------------------------------------------------------
 
 # Keep Python 3.12.13 consistent with the GitHub runner.
-requirements = python3==3.12.13,kivy==2.3.1,requests
+requirements = python3==3.12.13,hostpython3==3.12.13,kivy==2.3.1,requests
 
 # ---------------------------------------------------------
 # Android
@@ -40,7 +40,6 @@ android.permissions = INTERNET
 
 p4a.bootstrap = sdl2
 p4a.branch = master
-p4a.python_version = 3.12
 
 # ---------------------------------------------------------
 # Build settings
