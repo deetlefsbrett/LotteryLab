@@ -36,6 +36,7 @@ android.permissions = INTERNET
 # ---------------------------------------------------------
 
 p4a.bootstrap = sdl2
+p4a.branch = develop
 
 # ---------------------------------------------------------
 # Build settings
