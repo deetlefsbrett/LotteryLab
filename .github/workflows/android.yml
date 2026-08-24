@@ -43,7 +43,7 @@ jobs:
           python -m pip --version
 
           python -c "import sys; print(sys.executable)"
-          python -c "print(sys.version)"
+          python -c "import sys; print(sys.version)"
 
           python -c "import sys; assert sys.version_info[:2] == (3, 14), 'Python 3.14 is required'"
 
