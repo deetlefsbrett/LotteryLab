@@ -1,3 +1,6 @@
+# LotteryLab Mobile Android Build
+
+```yaml
 name: Build LotteryLab Mobile APK
 
 on:
@@ -13,19 +16,53 @@ jobs:
 
     steps:
 
+      # ---------------------------------------------------------
+      # CHECKOUT
+      # ---------------------------------------------------------
+
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      # ---------------------------------------------------------
+      # PYTHON 3.14
+      # ---------------------------------------------------------
 
       - name: Set up Python 3.14
         uses: actions/setup-python@v5
         with:
           python-version: "3.14"
 
+      - name: Verify Python 3.14
+        run: |
+          set -eux
+
+          echo "========================================"
+          echo "PYTHON VERSION"
+          echo "========================================"
+
+          python --version
+          python -m pip --version
+
+          python -c "import sys; print(sys.executable)"
+          python -c "print(sys.version)"
+
+          python -c "import sys; assert sys.version_info[:2] == (3, 14), 'Python 3.14 is required'"
+
+          echo "Python 3.14 confirmed."
+
+      # ---------------------------------------------------------
+      # JAVA 17
+      # ---------------------------------------------------------
+
       - name: Set up Java 17
         uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "17"
+
+      # ---------------------------------------------------------
+      # SYSTEM DEPENDENCIES
+      # ---------------------------------------------------------
 
       - name: Install system dependencies
         run: |
@@ -54,27 +91,9 @@ jobs:
             ccache \
             gettext
 
-      - name: Verify Python 3.14
-        run: |
-          set -eux
-
-          echo "========================================"
-          echo "Python"
-          echo "========================================"
-
-          python --version
-          python -c "import sys; print(sys.executable)"
-          python -c "import sys; print(sys.version)"
-
-          case "$(python -c 'import sys; print(sys.version_info[:2])')" in
-            "(3, 14)")
-              echo "Python 3.14 confirmed."
-              ;;
-            *)
-              echo "ERROR: Python 3.14 was not selected."
-              exit 1
-              ;;
-          esac
+      # ---------------------------------------------------------
+      # RUST
+      # ---------------------------------------------------------
 
       - name: Install Rust
         run: |
@@ -84,17 +103,34 @@ jobs:
 
           echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
 
+      # ---------------------------------------------------------
+      # PYTHON BUILD TOOLS
+      # ---------------------------------------------------------
+
+      - name: Install Python build tools
+        run: |
+          set -eux
+
+          python -m pip install --upgrade \
+            pip \
+            setuptools \
+            wheel \
+            virtualenv
+
+          python -m pip install \
+            legacy-cgi \
+            cython==0.29.34
+
+      # ---------------------------------------------------------
+      # BUILDOZER
+      # ---------------------------------------------------------
+
       - name: Install Buildozer
         run: |
           set -eux
 
-          python -m pip install --upgrade pip setuptools wheel
-
           python -m pip install \
             git+https://github.com/kivy/buildozer.git
-
-          python -m pip install \
-            legacy-cgi
 
       - name: Verify Buildozer
         working-directory: mobile
@@ -102,10 +138,14 @@ jobs:
           set -eux
 
           echo "========================================"
-          echo "Buildozer"
+          echo "BUILDOZER VERSION"
           echo "========================================"
 
           buildozer --version
+
+      # ---------------------------------------------------------
+      # VERIFY BUILDOZER CONFIGURATION
+      # ---------------------------------------------------------
 
       - name: Verify buildozer.spec
         working-directory: mobile
@@ -113,21 +153,61 @@ jobs:
           set -eux
 
           echo "========================================"
-          echo "buildozer.spec"
+          echo "BUILDOZER SPEC"
           echo "========================================"
 
           cat buildozer.spec
 
           echo "========================================"
-          echo "Important settings"
+          echo "PYTHON REQUIREMENTS"
           echo "========================================"
 
           grep -n "^requirements" buildozer.spec || true
+
+          echo "========================================"
+          echo "ANDROID SETTINGS"
+          echo "========================================"
+
           grep -n "^android.api" buildozer.spec || true
+          grep -n "^android.ndk" buildozer.spec || true
           grep -n "^android.minapi" buildozer.spec || true
           grep -n "^android.archs" buildozer.spec || true
+
+          echo "========================================"
+          echo "PYTHON-FOR-ANDROID SETTINGS"
+          echo "========================================"
+
           grep -n "^p4a.bootstrap" buildozer.spec || true
           grep -n "^p4a.branch" buildozer.spec || true
+
+      # ---------------------------------------------------------
+      # VERIFY REQUIRED SETTINGS
+      # ---------------------------------------------------------
+
+      - name: Check Python 3.14 Android configuration
+        working-directory: mobile
+        run: |
+          set -eux
+
+          echo "Checking Python 3.14 Android configuration..."
+
+          grep -q "^requirements = python3" buildozer.spec
+
+          grep -q "^android.api = 36" buildozer.spec
+
+          grep -q "^android.ndk = 29" buildozer.spec
+
+          grep -q "^android.archs = arm64-v8a" buildozer.spec
+
+          grep -q "^p4a.bootstrap = sdl2" buildozer.spec
+
+          grep -q "^p4a.branch = develop" buildozer.spec
+
+          echo "Configuration checks passed."
+
+      # ---------------------------------------------------------
+      # CLEAN BUILD
+      # ---------------------------------------------------------
 
       - name: Clean Android build
         working-directory: mobile
@@ -137,23 +217,35 @@ jobs:
           rm -rf .buildozer
           rm -rf bin
 
-          echo "Clean build directory prepared."
+          echo "Clean Android build directory prepared."
+
+      # ---------------------------------------------------------
+      # BUILD APK
+      # ---------------------------------------------------------
 
       - name: Build Android APK
         working-directory: mobile
         env:
           ACCEPT_EULA: "Y"
           PYTHONFORANDROID_PREREQUISITES_INSTALL_INTERACTIVE: "0"
+
         run: |
           set -eux
 
           echo "========================================"
-          echo "LotteryLab Android Build"
+          echo "LOTTERYLAB ANDROID BUILD"
           echo "========================================"
 
+          echo "Host Python:"
           python --version
 
+          echo "Starting Buildozer..."
+
           buildozer -v --stacktrace android debug
+
+      # ---------------------------------------------------------
+      # FIND APK
+      # ---------------------------------------------------------
 
       - name: List APK files
         if: always()
@@ -171,6 +263,10 @@ jobs:
 
           find . -type f -name "*.apk" -print || true
 
+      # ---------------------------------------------------------
+      # UPLOAD APK
+      # ---------------------------------------------------------
+
       - name: Upload APK
         if: success()
         uses: actions/upload-artifact@v4
@@ -178,3 +274,4 @@ jobs:
           name: LotteryLab-Android-APK
           path: mobile/bin/*.apk
           if-no-files-found: error
+```
