@@ -223,6 +223,8 @@ jobs:
 
           rm -rf .buildozer
           rm -rf bin
+          rm -rf ~/.buildozer
+          rm -rf ~/.cache/pip
 
           echo "Clean Android build directory prepared."
 
