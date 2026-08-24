@@ -25,6 +25,7 @@ requirements = python3,kivy==2.3.1
 # ---------------------------------------------------------
 
 android.api = 36
+android.ndk = 29
 android.minapi = 24
 android.archs = arm64-v8a
 android.accept_sdk_license = True
