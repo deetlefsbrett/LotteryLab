@@ -1,6 +1,5 @@
 # LotteryLab Mobile Android Build
 
-```yaml
 name: Build LotteryLab Mobile APK
 
 on:
