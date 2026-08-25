@@ -25,8 +25,9 @@ requirements = python3==3.12.13,hostpython3==3.12.13,kivy==2.3.1,requests
 # ---------------------------------------------------------
 
 android.api = 36
+android.ndk = 29
 android.minapi = 24
-android.archs = arm64-v8a
+android.archs = arm64-v8a,armeabi-v7a
 android.accept_sdk_license = True
 android.debug_artifact = apk
 android.permissions = INTERNET
@@ -37,6 +38,7 @@ android.permissions = INTERNET
 
 p4a.bootstrap = sdl2
 p4a.branch = master
+p4a.python_version = 3.12.13
 
 # ---------------------------------------------------------
 # Build settings

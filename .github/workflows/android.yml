@@ -1,3 +1,5 @@
+# LotteryLab Mobile Android Build
+
 name: Build LotteryLab Mobile APK
 
 on:
@@ -13,13 +15,43 @@ jobs:
 
     steps:
 
+      # ---------------------------------------------------------
+      # CHECKOUT
+      # ---------------------------------------------------------
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.12
+      # ---------------------------------------------------------
+      # PYTHON 3.12.13
+      # ---------------------------------------------------------
+
+      - name: Set up Python 3.12.13
         uses: actions/setup-python@v5
         with:
           python-version: "3.12.13"
+
+      - name: Verify Python 3.12.13
+        run: |
+          set -eux
+
+          echo "========================================"
+          echo "PYTHON VERSION"
+          echo "========================================"
+
+          python --version
+          python -m pip --version
+
+          python -c "import sys; print(sys.executable)"
+          python -c "import sys; print(sys.version)"
+
+          python -c "import sys; assert sys.version_info[:3] == (3, 12, 13), 'Python 3.12.13 is required'"
+
+          echo "Python 3.12.13 confirmed."
+
+      # ---------------------------------------------------------
+      # JAVA 17
+      # ---------------------------------------------------------
 
       - name: Set up Java 17
         uses: actions/setup-java@v5
@@ -27,16 +59,23 @@ jobs:
           distribution: temurin
           java-version: "17"
 
+      # ---------------------------------------------------------
+      # SYSTEM DEPENDENCIES
+      # ---------------------------------------------------------
+
       - name: Install system dependencies
         run: |
           set -eux
-          sudo apt-get update -qq
+
+          sudo apt-get update
+
           sudo apt-get install -y --no-install-recommends \
             git \
             zip \
             unzip \
             autoconf \
             automake \
+            autopoint \
             libtool \
             libtool-bin \
             libltdl-dev \
@@ -46,89 +85,184 @@ jobs:
             libssl-dev \
             zlib1g-dev \
             libncurses5-dev \
-            libncursesw5-dev
+            libncursesw5-dev \
+            libtinfo6 \
+            ccache \
+            gettext \
+            curl
 
-      - name: Verify build environment
+      # ---------------------------------------------------------
+      # RUST
+      # ---------------------------------------------------------
+
+      - name: Install Rust
         run: |
           set -eux
-          echo "========================================"
-          echo "Python"
-          echo "========================================"
-          python --version
-          python -m pip --version
 
-          echo "========================================"
-          echo "Java"
-          echo "========================================"
-          java -version
+          curl https://sh.rustup.rs -sSf | sh -s -- -y
 
-          echo "========================================"
-          echo "Build tools"
-          echo "========================================"
-          git --version
-          autoconf --version | head -1
-          automake --version | head -1
-          libtool --version | head -1
-          cmake --version | head -1
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+
+      # ---------------------------------------------------------
+      # PYTHON BUILD TOOLS
+      # ---------------------------------------------------------
 
       - name: Install Python build tools
         run: |
           set -eux
+
           python -m pip install --upgrade \
             pip \
             setuptools \
             wheel \
             virtualenv
-          python -m pip install buildozer
+
+          python -m pip install \
+            legacy-cgi \
+            "cython>=3.1.0"
+
+      # ---------------------------------------------------------
+      # BUILDOZER
+      # ---------------------------------------------------------
+
+      - name: Install Buildozer
+        run: |
+          set -eux
+
+          python -m pip install \
+            git+https://github.com/kivy/buildozer.git
 
       - name: Verify Buildozer
         working-directory: mobile
         run: |
           set -eux
+
           echo "========================================"
-          echo "Buildozer version"
+          echo "BUILDOZER VERSION"
           echo "========================================"
+
           buildozer --version
+
+      # ---------------------------------------------------------
+      # VERIFY BUILDOZER CONFIGURATION
+      # ---------------------------------------------------------
 
       - name: Verify buildozer.spec
         working-directory: mobile
         run: |
           set -eux
+
           echo "========================================"
-          echo "buildozer.spec"
+          echo "BUILDOZER SPEC"
           echo "========================================"
+
           cat buildozer.spec
 
           echo "========================================"
-          echo "Important settings"
+          echo "PYTHON REQUIREMENTS"
           echo "========================================"
+
           grep -n "^requirements" buildozer.spec || true
+
+          echo "========================================"
+          echo "ANDROID SETTINGS"
+          echo "========================================"
+
           grep -n "^android.api" buildozer.spec || true
+          grep -n "^android.ndk" buildozer.spec || true
           grep -n "^android.minapi" buildozer.spec || true
           grep -n "^android.archs" buildozer.spec || true
+
+          echo "========================================"
+          echo "PYTHON-FOR-ANDROID SETTINGS"
+          echo "========================================"
+
           grep -n "^p4a.bootstrap" buildozer.spec || true
           grep -n "^p4a.branch" buildozer.spec || true
+          grep -n "^p4a.python_version" buildozer.spec || true
+
+      # ---------------------------------------------------------
+      # VERIFY REQUIRED PYTHON 3.12.13 SETTINGS
+      # ---------------------------------------------------------
+
+      - name: Check Python 3.12.13 Android configuration
+        working-directory: mobile
+        run: |
+          set -eux
+
+          echo "Checking Python 3.12.13 Android configuration..."
+
+          grep -q "^requirements = python3==3.12.13,hostpython3==3.12.13" buildozer.spec
+
+          grep -q "^android.api = 36" buildozer.spec
+
+          grep -q "^android.ndk = 29" buildozer.spec
+
+          grep -q "^android.minapi = 24" buildozer.spec
+
+          grep -q "^android.archs = arm64-v8a,armeabi-v7a" buildozer.spec
+
+          grep -q "^p4a.bootstrap = sdl2" buildozer.spec
+
+          grep -q "^p4a.branch = master" buildozer.spec
+
+          grep -q "^p4a.python_version = 3.12.13" buildozer.spec
+
+          echo "========================================"
+          echo "CONFIGURATION CHECK PASSED"
+          echo "========================================"
+
+      # ---------------------------------------------------------
+      # CLEAN BUILD
+      # ---------------------------------------------------------
 
       - name: Clean Android build
         working-directory: mobile
         run: |
           set -eux
+
           rm -rf .buildozer
           rm -rf bin
-          echo "Clean build directory prepared."
+          rm -rf ~/.buildozer
+          rm -rf ~/.cache/pip
+
+          echo "Clean Android build directory prepared."
+
+      # ---------------------------------------------------------
+      # BUILD APK
+      # ---------------------------------------------------------
 
       - name: Build Android APK
         working-directory: mobile
         env:
           ACCEPT_EULA: "Y"
           PYTHONFORANDROID_PREREQUISITES_INSTALL_INTERACTIVE: "0"
+
         run: |
           set -eux
+
           echo "========================================"
-          echo "Starting LotteryLab Android build"
+          echo "LOTTERYLAB ANDROID BUILD"
           echo "========================================"
+
+          echo "Host Python:"
           python --version
-          buildozer -v android debug
+
+          echo "Python executable:"
+          python -c "import sys; print(sys.executable)"
+
+          echo "Python version:"
+          python -c "import sys; print(sys.version)"
+
+          echo "========================================"
+          echo "STARTING BUILDOZER"
+          echo "========================================"
+
+          buildozer -v --stacktrace android debug
+
+      # ---------------------------------------------------------
+      # FIND APK
+      # ---------------------------------------------------------
 
       - name: List APK files
         if: always()
@@ -137,12 +271,18 @@ jobs:
           echo "========================================"
           echo "BIN DIRECTORY"
           echo "========================================"
+
           ls -lah bin || true
 
           echo "========================================"
           echo "APK FILES"
           echo "========================================"
+
           find . -type f -name "*.apk" -print || true
+
+      # ---------------------------------------------------------
+      # UPLOAD APK
+      # ---------------------------------------------------------
 
       - name: Upload APK
         if: success()
