@@ -229,6 +229,21 @@ jobs:
           echo "Clean Android build directory prepared."
 
       # ---------------------------------------------------------
+      # DISABLE ANDROID-INCOMPATIBLE PYTHON GRP MODULE
+      # ---------------------------------------------------------
+
+      - name: Disable Python grp module
+        working-directory: mobile
+        run: |
+          set -eux
+
+          echo "Disabling Python grp module for Android..."
+
+          printf '%s\n' '--blacklist-requirements=grp' > .p4a
+
+          cat .p4a
+
+      # ---------------------------------------------------------
       # BUILD APK
       # ---------------------------------------------------------
 
