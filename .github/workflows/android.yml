@@ -200,7 +200,7 @@ jobs:
 
           grep -q "^android.minapi = 24" buildozer.spec
 
-          grep -q "^android.archs = arm64-v8a,armeabi-v7a" buildozer.spec
+          grep -q "^android.archs = arm64-v8a" buildozer.spec
 
           grep -q "^p4a.bootstrap = sdl2" buildozer.spec
 
