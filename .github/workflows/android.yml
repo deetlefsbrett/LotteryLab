@@ -204,7 +204,7 @@ jobs:
 
           grep -q "^p4a.bootstrap = sdl2" buildozer.spec
 
-          grep -q "^p4a.branch = master" buildozer.spec
+          grep -q "^p4a.branch = develop" buildozer.spec
 
           grep -q "^p4a.python_version = 3.12.13" buildozer.spec
 

@@ -37,7 +37,7 @@ android.permissions = INTERNET
 # ---------------------------------------------------------
 
 p4a.bootstrap = sdl2
-p4a.branch = master
+p4a.branch = develop
 p4a.python_version = 3.12.13
 
 # ---------------------------------------------------------
