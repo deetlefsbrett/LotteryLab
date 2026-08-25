@@ -45,7 +45,7 @@ jobs:
           python -c "import sys; print(sys.executable)"
           python -c "import sys; print(sys.version)"
 
-          python -c "import sys; assert sys.version_info[:2] == (3, 12), 'Python 3.14.2 is required'"
+          python -c "import sys; assert sys.version_info[:2] == (3, 14,2), 'Python 3.14.2 is required'"
 
           echo "Python 3.14.2 confirmed."
 
