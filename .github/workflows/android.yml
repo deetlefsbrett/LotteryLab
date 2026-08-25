@@ -196,7 +196,7 @@ jobs:
 
           grep -q "^android.api = 36" buildozer.spec
 
-          grep -q "^android.ndk = 29" buildozer.spec
+          grep -q "^android.ndk = 28c" buildozer.spec
 
           grep -q "^android.minapi = 24" buildozer.spec
 
