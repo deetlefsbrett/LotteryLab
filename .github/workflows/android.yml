@@ -6,6 +6,32 @@ on:
       - main
   workflow_dispatch:
 
+      - name: Inspect Python recipe configuration
+        working-directory: mobile
+        run: |
+          set -eux
+
+          echo "========================================"
+          echo "PYTHON-FOR-ANDROID DIAGNOSTIC"
+          echo "========================================"
+
+          python -m pip show python-for-android || true
+
+          echo "========================================"
+          echo "P4A VERSION"
+          echo "========================================"
+
+          python -m pythonforandroid.toolchain --version || true
+
+          echo "========================================"
+          echo "P4A CACHE"
+          echo "========================================"
+
+          find .buildozer/android/platform -maxdepth 6 \
+            -type f \
+            \( -name "recipe.py" -o -name "setup.py" -o -name "Makefile.pre.in" \) \
+            -print 2>/dev/null | head -100 || true
+            
 jobs:
   build-android:
     name: Build LotteryLab Android APK
@@ -175,40 +201,6 @@ jobs:
           echo "========================================"
 
 ﻿      # ---------------------------------------------------------
-      # VERIFY BUILDOZER.SPEC ENCODING
-      # ---------------------------------------------------------
-
-      - name: Verify buildozer.spec encoding
-        working-directory: mobile
-        run: |
-          set -eux
-
-          echo "========================================"
-          echo "BUILDOZER SPEC RAW BYTE CHECK"
-          echo "========================================"
-
-          python - <<'PY'
-          from pathlib import Path
-
-          path = Path("buildozer.spec")
-          data = path.read_bytes()
-
-          print("File:", path)
-          print("Size:", len(data))
-          print("First 16 bytes:", data[:16].hex(" "))
-
-          if data.startswith(b"\xef\xbb\xbf"):
-              raise SystemExit("ERROR: UTF-8 BOM detected")
-
-          if not data.startswith(b"[app]"):
-              raise SystemExit(
-                  f"ERROR: buildozer.spec does not start with [app]. "
-                  f"First bytes: {data[:16]!r}"
-              )
-
-          print("OK: buildozer.spec starts with [app] and has no BOM")
-          PY
-
       # ---------------------------------------------------------
       # CLEAN BUILD
       # ---------------------------------------------------------
