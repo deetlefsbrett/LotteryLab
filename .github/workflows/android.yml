@@ -236,6 +236,52 @@ jobs:
           cat .p4a
 
       # ---------------------------------------------------------
+      # DIAGNOSE PYTHON GRP BUILD
+      # ---------------------------------------------------------
+
+      - name: Diagnose Python grp build
+        working-directory: mobile
+        run: |
+          set -eux
+
+          echo "========================================"
+          echo "PYTHON-FOR-ANDROID VERSION"
+          echo "========================================"
+
+          python -m pip show python-for-android || true
+
+          echo "========================================"
+          echo "P4A VERSION"
+          echo "========================================"
+
+          python -m pythonforandroid.toolchain --version || true
+
+          echo "========================================"
+          echo "PYTHON RECIPES"
+          echo "========================================"
+
+          find .buildozer/android/platform/python-for-android \
+            -type f \
+            \( -name "recipe.py" -o -name "build.py" \) \
+            -print 2>/dev/null | head -100 || true
+
+          echo "========================================"
+          echo "GRP REFERENCES"
+          echo "========================================"
+
+          grep -Rni "grpmodule\|Modules/grp\|grp" \
+            .buildozer/android/platform/python-for-android \
+            2>/dev/null | head -100 || true
+
+          echo "========================================"
+          echo "PYTHON BUILD FILES"
+          echo "========================================"
+
+          find .buildozer/android/platform/build-arm64-v8a \
+            -type f \
+            \( -name "setup.py" -o -name "configure.ac" -o -name "Makefile.pre.in" \) \
+            -print 2>/dev/null | head -100 || true
+      # ---------------------------------------------------------
       # BUILD APK
       # ---------------------------------------------------------
 
