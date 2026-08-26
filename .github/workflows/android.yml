@@ -5,32 +5,7 @@ on:
     branches:
       - main
   workflow_dispatch:
-      - name: Inspect Python recipe configuration
-        working-directory: mobile
-        run: |
-          set -eux
 
-          echo "========================================"
-          echo "PYTHON-FOR-ANDROID DIAGNOSTIC"
-          echo "========================================"
-
-          python -m pip show python-for-android || true
-
-          echo "========================================"
-          echo "P4A VERSION"
-          echo "========================================"
-
-          python -m pythonforandroid.toolchain --version || true
-
-          echo "========================================"
-          echo "P4A CACHE"
-          echo "========================================"
-
-          find .buildozer/android/platform -maxdepth 6 \
-            -type f \
-            \( -name "recipe.py" -o -name "setup.py" -o -name "Makefile.pre.in" \) \
-            -print 2>/dev/null | head -100 || true
-            
 jobs:
   build-android:
     name: Build LotteryLab Android APK
@@ -168,6 +143,36 @@ jobs:
           buildozer --version
 
       # ---------------------------------------------------------
+      # INSPECT PYTHON-FOR-ANDROID
+      # ---------------------------------------------------------
+
+      - name: Inspect Python recipe configuration
+        working-directory: mobile
+        run: |
+          set -eux
+
+          echo "========================================"
+          echo "PYTHON-FOR-ANDROID DIAGNOSTIC"
+          echo "========================================"
+
+          python -m pip show python-for-android || true
+
+          echo "========================================"
+          echo "P4A VERSION"
+          echo "========================================"
+
+          python -m pythonforandroid.toolchain --version || true
+
+          echo "========================================"
+          echo "P4A CACHE"
+          echo "========================================"
+
+          find .buildozer/android/platform -maxdepth 6 \
+            -type f \
+            \( -name "recipe.py" -o -name "setup.py" -o -name "Makefile.pre.in" \) \
+            -print 2>/dev/null | head -100 || true
+
+      # ---------------------------------------------------------
       # VERIFY CONFIGURATION
       # ---------------------------------------------------------
 
@@ -202,7 +207,6 @@ jobs:
       # ---------------------------------------------------------
       # CLEAN BUILD
       # ---------------------------------------------------------
-
 
       - name: Clean Android build
         working-directory: mobile
