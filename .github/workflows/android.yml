@@ -174,9 +174,45 @@ jobs:
           echo "CONFIGURATION CHECK PASSED"
           echo "========================================"
 
+﻿      # ---------------------------------------------------------
+      # VERIFY BUILDOZER.SPEC ENCODING
+      # ---------------------------------------------------------
+
+      - name: Verify buildozer.spec encoding
+        working-directory: mobile
+        run: |
+          set -eux
+
+          echo "========================================"
+          echo "BUILDOZER SPEC RAW BYTE CHECK"
+          echo "========================================"
+
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("buildozer.spec")
+          data = path.read_bytes()
+
+          print("File:", path)
+          print("Size:", len(data))
+          print("First 16 bytes:", data[:16].hex(" "))
+
+          if data.startswith(b"\xef\xbb\xbf"):
+              raise SystemExit("ERROR: UTF-8 BOM detected")
+
+          if not data.startswith(b"[app]"):
+              raise SystemExit(
+                  f"ERROR: buildozer.spec does not start with [app]. "
+                  f"First bytes: {data[:16]!r}"
+              )
+
+          print("OK: buildozer.spec starts with [app] and has no BOM")
+          PY
+
       # ---------------------------------------------------------
       # CLEAN BUILD
       # ---------------------------------------------------------
+
 
       - name: Clean Android build
         working-directory: mobile
