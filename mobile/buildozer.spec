@@ -19,6 +19,7 @@ orientation = portrait
 # ---------------------------------------------------------
 
 requirements = python3==3.12.13,hostpython3==3.12.13,kivy==2.3.1,requests
+p4a.blacklist_requirements = grp
 
 # ---------------------------------------------------------
 # Android
